@@ -1,0 +1,3 @@
+#include "Res/AsmFlappyBirdMnu.rc"
+#include "Res/AsmFlappyBirdDlg.rc"
+#include "Res/AsmFlappyBirdRes.rc"
