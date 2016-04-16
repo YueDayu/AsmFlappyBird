@@ -100,8 +100,7 @@ PaintBoard proc uses ebx esi,hWin:HWND,hDC:HDC
 	        invoke ImageList_Draw, tubeIml, 0, mDC, [ebx].OBJECT.x, [ebx].OBJECT.y, ILD_TRANSPARENT
 	    .endif
  	    mov ebx, offset downTube
- 	    ;mov eax, [ebx].OBJECT.x
- 	    ;mov cPoint, eax
+ 	    
  	    .if [ebx].OBJECT.x < 288 || [ebx].OBJECT.x <= -1
 	        invoke ImageList_Draw, tubeIml, 1, mDC, [ebx].OBJECT.x, [ebx].OBJECT.y, ILD_TRANSPARENT
 	    .endif
@@ -118,21 +117,25 @@ PaintBoard proc uses ebx esi,hWin:HWND,hDC:HDC
 	    mov		wRect.bottom,500
 	    invoke SetBkMode,mDC,TRANSPARENT	    
 	    invoke wsprintfA,addr buffer,offset fmtStr,cPoint
+	    ;invoke wsprintfA,addr buffer,offset fmtStr,debug
 	    invoke SetTextColor,mDC,0ffffffh
 	    invoke DrawText,mDC,addr buffer,-1,addr wRect,DT_CENTER
 	    invoke SetTextColor,mDC,0000000h
 	    mov		wRect.top,49
 	    mov		wRect.right,286
-	    invoke DrawText,mDC,addr buffer,-1,addr wRect,DT_CENTER
+	    invoke DrawText,mDC,addr buffer,-1,addr wRect,DT_CENTER   
+	    
+	    .if isAuto
+	        mov		wRect.top,30
+	        mov		wRect.right,288
+	        invoke wsprintfA,addr buffer,offset maxFmtStr,maxPoint
+	        invoke DrawText,mDC,addr buffer,-1,addr wRect,DT_CENTER
+	        mov		wRect.top,10
+	        invoke wsprintfA,addr buffer,offset lastFmtStr,lPoint
+	        invoke DrawText,mDC,addr buffer,-1,addr wRect,DT_CENTER
+	    .endif
+	    
 	.endif
-		
-	; Draw bottom
-	mov eax, speed
-	sub bottomX, eax
-	.if bottomX < -47
-	    mov bottomX, 0
-	.endif
-	invoke ImageList_Draw, barIml, 0, mDC, bottomX, bottomY, ILD_TRANSPARENT
 	
 	; Draw bird
 	.if cflap < 1 && cflapDir == 3
@@ -150,6 +153,14 @@ PaintBoard proc uses ebx esi,hWin:HWND,hDC:HDC
 	.endif
 	
 	invoke ImageList_Draw, birdIml, cflap, mDC, birdX, birdY, ILD_TRANSPARENT
+	
+	; Draw bottom
+	mov eax, speed
+	sub bottomX, eax
+	.if bottomX < -47
+	    mov bottomX, 0
+	.endif
+	invoke ImageList_Draw, barIml, 0, mDC, bottomX, bottomY, ILD_TRANSPARENT
 	
 	invoke GetClientRect,hWin,addr rect
 	invoke StretchBlt,hDC,0,0,rect.right,rect.bottom,mDC,0,0,288,500,SRCCOPY
@@ -198,25 +209,6 @@ Random proc uses ecx edx,range:DWORD
 Random endp
 
 
-SetupDie proc uses eax,hWin:DWORD
-
-    mov eax, cPoint
-    mov cPoint, 0
-    mov lPoint, eax
-    .if eax > maxPoint
-        mov maxPoint, eax  
-    .endif
-    mov gStatus, 0
-    
-    mov birdX, 127
-    mov birdY, 168
-    
-    invoke InvalidateRect,hWin,NULL,TRUE
- 
-    ret
-SetupDie endp
-
-
 SetupFly proc uses eax
     inc rseed
     ; set bird
@@ -252,11 +244,183 @@ SetupFly proc uses eax
 SetupFly endp
 
 
+SetupDie proc uses eax,hWin:DWORD
+
+    mov eax, cPoint
+    mov cPoint, 0
+    mov lPoint, eax
+    .if eax > maxPoint
+        mov maxPoint, eax  
+    .endif
+    mov gStatus, 0
+    
+    mov birdX, 127
+    mov birdY, 168
+    
+    .if isAuto
+        mov gStatus, 1
+	    invoke SetupFly
+    .endif
+    
+    invoke InvalidateRect,hWin,NULL,TRUE
+ 
+    ret
+SetupDie endp
+
+
+SetDist proc uses eax ebx
+    
+    mov ebx, offset downTube
+    mov eax, [ebx].OBJECT.x
+    .if eax < birdX || eax > 10000 ; behind the bird, use the second tube
+        add ebx, sizeof OBJECT
+    .endif
+    mov eax, [ebx].OBJECT.x
+    sub eax, birdX
+    .if eax > 179
+        mov eax, 180
+    .endif
+    mov stateDashH, eax
+    mov eax, [ebx].OBJECT.y
+    mov ebx, birdY
+    sub eax, ebx
+    add eax, 174
+    mov stateDashV, eax 
+    ret
+
+SetDist endp
+
+
+UpdateQ proc uses eax ebx edx
+    LOCAL V_s_dash_a_dash:REAL8
+    LOCAL Q_s_a:REAL8
+    LOCAL tempX:DWORD
+    LOCAL tempY:DWORD
+    
+    finit
+    
+    mov edx, 0
+    mov eax, stateDashV
+    mov ebx, 10
+    div ebx
+    mov tempX, eax
+    mov edx, 0
+    mov eax, stateDashH
+    mov ebx, 10
+    div ebx
+    mov tempY, eax
+    mov eax, tempX
+    mov ebx, 38
+    mul ebx
+    mov ebx, eax
+    add ebx, tempY
+    add ebx, tempY
+    fld QMap[ebx * type QMap] ; load Q[tempX][tempY][0]
+    inc ebx
+    fcom QMap[ebx * type QMap] ; compare with Q[tempX][tempY][1]
+    fnstsw ax
+    sahf
+    ja L1
+    fstp V_s_dash_a_dash
+    fld QMap[ebx * type QMap]
+    L1:
+    fstp V_s_dash_a_dash ; save the bigger number to V_s_dash_a_dash
+    
+    finit
+    
+    mov edx, 0
+    mov eax, stateV
+    mov ebx, 10
+    div ebx
+    mov tempX, eax
+    mov edx, 0
+    mov eax, stateH
+    mov ebx, 10
+    div ebx
+    mov tempY, eax
+    mov eax, tempX
+    mov ebx, 38
+    mul ebx
+    add eax, tempY
+    add eax, tempY
+    add eax, actionToPerform
+    mov ebx, eax
+    fld QMap[ebx * type QMap]
+    fstp Q_s_a ; get Q_s_a
+    
+    fld V_s_dash_a_dash
+    fsub Q_s_a
+    
+    fild reward
+    fadd
+    
+    fld alpha_QL
+    fmul
+    
+    fld Q_s_a
+    fadd
+    
+    fstp QMap[ebx * type QMap]
+    
+    mov eax, stateDashV
+    mov stateV, eax
+    
+    mov eax, stateDashH
+    mov stateH, eax
+
+    ret
+
+UpdateQ endp
+
+
+PerformAction proc uses eax ebx
+    LOCAL tempX:DWORD
+    LOCAL tempY:DWORD
+    
+    finit
+    
+    mov edx, 0
+    mov eax, stateV
+    mov ebx, 10
+    div ebx
+    mov tempX, eax
+    mov edx, 0
+    mov eax, stateH
+    mov ebx, 10
+    div ebx
+    mov tempY, eax
+    mov eax, tempX
+    mov ebx, 38
+    mul ebx
+    add eax, tempY
+    add eax, tempY
+    mov ebx, eax
+    
+    fld QMap[ebx * type QMap] ; load Q[tempX][tempY][0]
+    inc ebx
+    fcom QMap[ebx * type QMap] ; compare with Q[tempX][tempY][1]
+    fnstsw ax
+    sahf
+    jb L3
+    mov actionToPerform, 0 ; do nothing
+    jmp L4
+    L3:
+    mov actionToPerform, 1
+    mov eax, jumpAc
+	mov birdAc, eax
+    L4:
+
+    ret
+
+PerformAction endp
+
+
 TimerProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
 
     .if gStatus == 1
         mov eax, birdAc
         add eax, gravityAc
+        mov reward, 10
         .if eax > birdMaxAc && eax < 10000
             mov eax, birdMaxAc
         .endif
@@ -266,8 +430,9 @@ TimerProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
             mov eax, 0
         .endif
         .if eax > birdBottom ; touch the ground, failed
-            invoke SetupDie, hBoard
             mov gStatus, 0
+            mov reward, -1000
+            invoke SetupDie, hBoard
         .else
             mov birdY, eax
         .endif
@@ -275,16 +440,18 @@ TimerProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
         push edx
         mov ebx, offset downTube
         mov eax, [ebx].OBJECT.x
-        .if eax < 63 && addedFlag == 0
+        .if eax < birdX && addedFlag == 0
+            mov reward, 100
             inc cPoint
             mov addedFlag, 1
         .endif
         .if eax > 11 && eax < 97
             mov eax, [ebx].OBJECT.y
             sub eax, birdY
-            .if eax < 24 || eax > 130 
-                invoke SetupDie, hBoard
+            .if eax < 24 || eax > 135 
                 mov gStatus, 0
+                mov reward, -1000
+                invoke SetupDie, hBoard
             .endif
         .endif
         
@@ -332,6 +499,13 @@ TimerProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
         .endw
         pop edx
         pop ebx
+        
+        .if isAuto
+            invoke SetDist
+            invoke UpdateQ    
+            invoke PerformAction
+        .endif
+        
     .endif
 	invoke InvalidateRect,hBoard,NULL,TRUE
 	ret
@@ -344,10 +518,13 @@ InitParam proc
     mov speed, 4
     mov bottomY, 387
     mov birdMaxAc, 12
-    mov birdBottom, 366
+    mov birdBottom, 369
     mov gravityAc, 2
     mov jumpAc, -14
     mov cflap, 1
+    mov stateV, 180
+    mov stateH, 0
+    mov isAuto, 0
     ret
 
 InitParam endp
@@ -399,7 +576,6 @@ WndProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
 	.elseif eax==WM_KEYDOWN
 		mov		eax,wParam
 		.if eax==VK_SPACE
-			push	ebx
 			.if gStatus == 0
 			    mov gStatus, 1
 			    invoke SetupFly
@@ -407,7 +583,8 @@ WndProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
 			    mov eax, jumpAc
 			    mov birdAc, eax
 			.endif
-			pop		ebx
+		.elseif eax==VK_A
+		    mov isAuto, 1
 		.endif
 	.elseif eax==WM_COMMAND
 		mov		eax,wParam

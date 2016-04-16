@@ -43,6 +43,7 @@ startStr            db 'HIT SPACE TO START', 0
 fmtStr				db '%lu',0
 lastFmtStr          db 'Last: %lu', 0
 maxFmtStr           db 'Max: %lu', 0
+alpha_QL            REAL8 0.75
 
 .data?
 
@@ -72,7 +73,7 @@ upTube              OBJECT 2 dup(<>)
 downTube            OBJECT 2 dup(<>)
 
 ; Bottom (Ground)
-bottomY             dd 387
+bottomY             dd 384
 bottomX             dd 0
 
 ; Bird: 
@@ -90,3 +91,22 @@ cflap               dd 1
 cflapDir            dd 0
 
 addedFlag           dd 0
+
+vDistRangeL         dd ?
+vDistRangeR         dd ?
+hDistRangeL         dd ?
+hDistRangeR         dd ?
+
+stateDashV          dd ? ; range [0, 529], real distance + 174; 53
+stateDashH          dd ? ; range [0, 180]; 19
+stateV              dd ?
+stateH              dd ?
+
+reward              dd 0
+actionToPerform     dd 0
+
+isAuto              dd 0 ; open auto mode?
+
+QMap                REAL8 53*19*2 dup(<>) ; 53 in V, 18 in H, 2 in action; 0 = do_nothing, 1 = jump
+
+debug               dd 0
