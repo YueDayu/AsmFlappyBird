@@ -31,7 +31,6 @@ MTIMER				equ 30
 OBJECT	struct
 	x		dd ?
 	y		dd ?
-	state	dd ?
 OBJECT ends
 
 .const
@@ -40,7 +39,10 @@ ClassName			db 'DLGCLASS',0
 AppName				db 'Flappy Bird',0
 AboutMsg			db 'Flppy Bird',13,10,'Copyright © YueDayu 2016',0
 ExitAsk             db 'Are you sure ?',0
+startStr            db 'HIT SPACE TO START', 0
 fmtStr				db '%lu',0
+lastFmtStr          db 'Last: %lu', 0
+maxFmtStr           db 'Max: %lu', 0
 
 .data?
 
@@ -53,6 +55,34 @@ OldBoardProc		dd ?
 
 bgIml				dd ?
 birdIml             dd ?
-tubeIml           dd ?
+tubeIml             dd ?
 barIml              dd ?
 
+gStatus             dd 0 ; 0-die 1-flying
+speed               dd 3
+cPoint              dd 0 ; current point
+lPoint              dd 0 ; last point
+maxPoint            dd 0 ; max point
+
+; Tube:
+; switch when the first disappear
+upTube              OBJECT 2 dup(<>)
+downTube            OBJECT 2 dup(<>)
+
+; Bottom (Ground)
+bottomY             dd 387
+bottomX             dd 0
+
+; Bird: 
+; in every loop, birdAc = min(birdAc + gravityAc, birdMaxAc);
+; birdY = min(max(birdAC + birdAC, 0), birdBottom)
+; If hit the buttom, birdAc = jumpAc
+birdX               dd ?
+birdY               dd ?
+birdAc              dd 0
+birdMaxAc           dd 8
+birdBottom          dd 361
+gravityAc           dd 1
+jumpAc              dd -7
+cflap               dd 1
+cflapDir            dd 0

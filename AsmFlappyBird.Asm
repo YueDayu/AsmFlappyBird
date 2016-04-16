@@ -56,6 +56,7 @@ PaintBoard proc uses ebx esi,hWin:HWND,hDC:HDC
 	LOCAL	hBmp:DWORD
 	LOCAL	hOld:DWORD
 	LOCAL	rect:RECT
+	LOCAL	wRect:RECT
 	LOCAL	xmax:DWORD
 	LOCAL	buffer[32]:BYTE
 
@@ -70,10 +71,61 @@ PaintBoard proc uses ebx esi,hWin:HWND,hDC:HDC
 	mov		rect.bottom,500
 	; Draw background
 	invoke ImageList_Draw, bgIml, 0, mDC, 0, 0, ILD_TRANSPARENT
-	invoke ImageList_Draw, birdIml, 0, mDC, 0, 0, ILD_TRANSPARENT
-	invoke ImageList_Draw, tubeIml, 0, mDC, 50, 0, ILD_TRANSPARENT
-	invoke ImageList_Draw, tubeIml, 1, mDC, 150, 0, ILD_TRANSPARENT
-	invoke ImageList_Draw, barIml, 0, mDC, 0, 387, ILD_TRANSPARENT
+	
+	; Draw words
+	.if gStatus == 0
+	    mov		wRect.left,0
+	    mov		wRect.top,210
+	    mov		wRect.right,288
+	    mov		wRect.bottom,500
+	    invoke SetBkMode,mDC,TRANSPARENT
+	    invoke SetTextColor,mDC,0000000h
+	    invoke wsprintfA,addr buffer,offset lastFmtStr,lPoint
+	    invoke DrawText,mDC,addr buffer,-1,addr wRect,DT_CENTER
+	    mov		wRect.top,235
+	    invoke wsprintfA,addr buffer,offset maxFmtStr,maxPoint
+	    invoke DrawText,mDC,addr buffer,-1,addr wRect,DT_CENTER
+	    mov		wRect.top,260
+	    invoke wsprintfA,addr buffer,offset startStr
+	    invoke DrawText,mDC,addr buffer,-1,addr wRect,DT_CENTER
+	.else
+	    ; Draw tube here
+	
+	    ; end draw tube
+	    mov		wRect.left,0
+	    mov		wRect.top,20
+	    mov		wRect.right,288
+	    mov		wRect.bottom,500
+	    invoke SetBkMode,mDC,TRANSPARENT
+	    invoke SetTextColor,mDC,0000000h
+	    invoke wsprintfA,addr buffer,offset fmtStr,cPoint
+	    invoke DrawText,mDC,addr buffer,-1,addr wRect,DT_CENTER
+	.endif
+		
+	; Draw bottom
+	mov eax, speed
+	sub bottomX, eax
+	.if bottomX < -47
+	    mov bottomX, 0
+	.endif
+	invoke ImageList_Draw, barIml, 0, mDC, bottomX, bottomY, ILD_TRANSPARENT
+	
+	; Draw bird
+	.if cflap < 1 && cflapDir == 3
+	    mov cflapDir, 0
+	.elseif cflap > 1 && cflapDir == 3
+	    mov cflapDir, 1
+	.elseif cflap < 1 || cflap > 1
+	    mov cflapDir, 3
+	.endif
+	
+	.if cflapDir==0
+	    inc cflap
+	.elseif cflapDir==1
+	    dec cflap
+	.endif
+	
+	invoke ImageList_Draw, birdIml, cflap, mDC, birdX, birdY, ILD_TRANSPARENT
 	
 	invoke GetClientRect,hWin,addr rect
 	invoke StretchBlt,hDC,0,0,rect.right,rect.bottom,mDC,0,0,288,500,SRCCOPY
@@ -102,6 +154,55 @@ BoardProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
 BoardProc endp
 
 
+TimerProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
+
+	invoke InvalidateRect,hBoard,NULL,TRUE
+	ret
+
+TimerProc endp
+
+
+InitParam proc
+    
+    mov speed, 3
+    mov bottomY, 387
+    mov birdMaxAc, 8
+    mov birdBottom, 661
+    mov gravityAc, 1
+    mov jumpAc, -7
+    mov cflap, 1
+    ret
+
+InitParam endp
+
+
+SetupDie proc uses eax
+
+    mov eax, cPoint
+    mov cPoint, 0
+    mov lPoint, eax
+    .if eax > maxPoint
+        mov maxPoint, eax  
+    .endif
+    
+    mov birdX, 127
+    mov birdY, 168
+ 
+    ret
+SetupDie endp
+
+
+SetupFly proc uses eax
+    ; set bird
+    mov birdX, 60
+    mov birdY, 168
+    mov eax, jumpAc
+    mov birdAc, eax
+    
+    ret
+SetupFly endp
+
+
 WndProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
     LOCAL	hBmp:DWORD
 
@@ -110,7 +211,7 @@ WndProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
 		push	hWin
 		pop		hWnd
 		; Load background image
-		invoke ImageList_Create,288,500,ILC_COLOR16 or ILC_MASK,1,1
+		invoke ImageList_Create,288,500,ILC_COLOR16,1,0
 		mov		bgIml,eax
 		invoke LoadBitmap,hInstance,IDB_BG
 		mov		hBmp,eax
@@ -131,19 +232,21 @@ WndProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
 		invoke ImageList_AddMasked,birdIml,hBmp,0
 		invoke DeleteObject,hBmp
 		; Load bar image
-		invoke ImageList_Create,307,14,ILC_COLOR16 or ILC_MASK,1,1
+		invoke ImageList_Create,336,112,ILC_COLOR16,1,0
 		mov		barIml,eax
 		invoke LoadBitmap,hInstance,IDB_BAR
 		mov		hBmp,eax
 		invoke ImageList_AddMasked,barIml,hBmp,0
 		invoke DeleteObject,hBmp
-		
+
 		invoke GetDlgItem,hWin,IDC_BOARD
 		mov		hBoard,eax
 		invoke SetWindowLong,hBoard,GWL_WNDPROC,offset BoardProc
 		mov		OldBoardProc,eax
+		invoke InitParam
+		invoke SetupDie
 		;invoke SetupGame,hBoard
-		;invoke SetTimer,hWin,200,MTIMER,offset TimerProc
+		invoke SetTimer,hWin,200,MTIMER,offset TimerProc
 	.elseif eax==WM_COMMAND
 		mov		eax,wParam
 		and		eax,0FFFFh
