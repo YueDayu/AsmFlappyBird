@@ -64,6 +64,8 @@ cPoint              dd 0 ; current point
 lPoint              dd 0 ; last point
 maxPoint            dd 0 ; max point
 
+rseed				dd ?
+
 ; Tube:
 ; switch when the first disappear
 upTube              OBJECT 2 dup(<>)
@@ -86,3 +88,5 @@ gravityAc           dd 1
 jumpAc              dd -7
 cflap               dd 1
 cflapDir            dd 0
+
+addedFlag           dd 0

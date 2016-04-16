@@ -81,7 +81,9 @@ AutoLoad=1,2,3,8,4,6
 2=0,0,0,0,400
 3=0,0,0,0,105
 [Find]
-1="about"
+1="addedFlag"
+2="SetupDie"
+3="about"
 [VersionControl]
 Settings=1246
 重要事件=129

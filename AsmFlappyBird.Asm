@@ -90,15 +90,39 @@ PaintBoard proc uses ebx esi,hWin:HWND,hDC:HDC
 	    invoke DrawText,mDC,addr buffer,-1,addr wRect,DT_CENTER
 	.else
 	    ; Draw tube here
+	    push ebx
+	    mov ebx, offset upTube
+	    .if [ebx].OBJECT.x < 288 || [ebx].OBJECT.x <= -1
+	        invoke ImageList_Draw, tubeIml, 0, mDC, [ebx].OBJECT.x, [ebx].OBJECT.y, ILD_TRANSPARENT
+	    .endif
+        add ebx, sizeof OBJECT
+        .if [ebx].OBJECT.x < 288 || [ebx].OBJECT.x <= -1
+	        invoke ImageList_Draw, tubeIml, 0, mDC, [ebx].OBJECT.x, [ebx].OBJECT.y, ILD_TRANSPARENT
+	    .endif
+ 	    mov ebx, offset downTube
+ 	    ;mov eax, [ebx].OBJECT.x
+ 	    ;mov cPoint, eax
+ 	    .if [ebx].OBJECT.x < 288 || [ebx].OBJECT.x <= -1
+	        invoke ImageList_Draw, tubeIml, 1, mDC, [ebx].OBJECT.x, [ebx].OBJECT.y, ILD_TRANSPARENT
+	    .endif
+        add ebx, sizeof OBJECT
+        .if [ebx].OBJECT.x < 288 || [ebx].OBJECT.x <= -1
+            invoke ImageList_Draw, tubeIml, 1, mDC, [ebx].OBJECT.x, [ebx].OBJECT.y, ILD_TRANSPARENT
+        .endif
+	    pop ebx
 	
 	    ; end draw tube
 	    mov		wRect.left,0
-	    mov		wRect.top,20
+	    mov		wRect.top,50
 	    mov		wRect.right,288
 	    mov		wRect.bottom,500
-	    invoke SetBkMode,mDC,TRANSPARENT
-	    invoke SetTextColor,mDC,0000000h
+	    invoke SetBkMode,mDC,TRANSPARENT	    
 	    invoke wsprintfA,addr buffer,offset fmtStr,cPoint
+	    invoke SetTextColor,mDC,0ffffffh
+	    invoke DrawText,mDC,addr buffer,-1,addr wRect,DT_CENTER
+	    invoke SetTextColor,mDC,0000000h
+	    mov		wRect.top,49
+	    mov		wRect.right,286
 	    invoke DrawText,mDC,addr buffer,-1,addr wRect,DT_CENTER
 	.endif
 		
@@ -154,8 +178,161 @@ BoardProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
 BoardProc endp
 
 
+Random proc uses ecx edx,range:DWORD
+
+    inc rseed
+	mov eax, rseed
+	mov ecx, 23
+	mul ecx
+	add eax, 7
+	and eax, 0FFFFFFFFh
+	ror eax, 1
+	xor eax, rseed
+	mov rseed, eax
+	mov ecx, range
+	xor edx, edx
+	div ecx
+	mov eax, edx
+	ret
+
+Random endp
+
+
+SetupDie proc uses eax,hWin:DWORD
+
+    mov eax, cPoint
+    mov cPoint, 0
+    mov lPoint, eax
+    .if eax > maxPoint
+        mov maxPoint, eax  
+    .endif
+    mov gStatus, 0
+    
+    mov birdX, 127
+    mov birdY, 168
+    
+    invoke InvalidateRect,hWin,NULL,TRUE
+ 
+    ret
+SetupDie endp
+
+
+SetupFly proc uses eax
+    inc rseed
+    ; set bird
+    mov birdX, 63
+    mov birdY, 200
+    mov eax, jumpAc
+    mov birdAc, eax
+    ; set tube
+    push ebx
+    push edx
+    mov ebx, offset upTube
+    mov edx, offset downTube
+    mov [ebx].OBJECT.x, 576
+    mov [edx].OBJECT.x, 576
+    invoke Random, 160
+    add eax, 195
+    mov [edx].OBJECT.y, eax
+    sub eax, 450
+    mov [ebx].OBJECT.y, eax
+    add ebx, sizeof OBJECT
+    add edx, sizeof OBJECT
+    mov [ebx].OBJECT.x, 756
+    mov [edx].OBJECT.x, 756
+    invoke Random, 160
+    add eax, 195
+    mov [edx].OBJECT.y, eax
+    sub eax, 450
+    mov [ebx].OBJECT.y, eax
+    pop edx
+    pop ebx
+    mov addedFlag, 0
+    ret
+SetupFly endp
+
+
 TimerProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
 
+    .if gStatus == 1
+        mov eax, birdAc
+        add eax, gravityAc
+        .if eax > birdMaxAc && eax < 10000
+            mov eax, birdMaxAc
+        .endif
+        mov birdAc, eax
+        add eax, birdY
+        .if eax > 10000
+            mov eax, 0
+        .endif
+        .if eax > birdBottom ; touch the ground, failed
+            invoke SetupDie, hBoard
+            mov gStatus, 0
+        .else
+            mov birdY, eax
+        .endif
+        push ebx
+        push edx
+        mov ebx, offset downTube
+        mov eax, [ebx].OBJECT.x
+        .if eax < 63 && addedFlag == 0
+            inc cPoint
+            mov addedFlag, 1
+        .endif
+        .if eax > 11 && eax < 97
+            mov eax, [ebx].OBJECT.y
+            sub eax, birdY
+            .if eax < 24 || eax > 130 
+                invoke SetupDie, hBoard
+                mov gStatus, 0
+            .endif
+        .endif
+        
+        mov ebx, offset upTube
+        mov edx, offset downTube
+        .if [ebx].OBJECT.x < -54 && [ebx].OBJECT.x > 10000
+            mov eax, ebx
+            add eax, sizeof OBJECT
+            mov ecx, [eax].OBJECT.x
+            mov [ebx].OBJECT.x, ecx
+            mov ecx, [eax].OBJECT.y
+            mov [ebx].OBJECT.y, ecx
+            mov eax, edx
+            add eax, sizeof OBJECT
+            mov ecx, [eax].OBJECT.x
+            mov [edx].OBJECT.x, ecx
+            mov ecx, [eax].OBJECT.y
+            mov [edx].OBJECT.y, ecx
+            
+            mov eax, [edx].OBJECT.x
+            add eax, 180
+            add ebx, sizeof OBJECT
+            add edx, sizeof OBJECT
+            mov [ebx].OBJECT.x, eax
+            mov [edx].OBJECT.y, eax
+            invoke Random, 160
+            add eax, 195
+            mov [edx].OBJECT.y, eax
+            sub eax, 450
+            mov [ebx].OBJECT.y, eax
+            
+            mov addedFlag, 0
+        .endif
+        mov ecx, 2
+        mov ebx, offset upTube
+        mov edx, offset downTube
+        .while ecx
+            mov eax, [ebx].OBJECT.x
+            sub eax, speed
+            mov [ebx].OBJECT.x, eax
+            mov [edx].OBJECT.x, eax
+            add ebx, sizeof OBJECT
+            add edx, sizeof OBJECT
+            dec ecx
+        .endw
+        pop edx
+        pop ebx
+    .endif
 	invoke InvalidateRect,hBoard,NULL,TRUE
 	ret
 
@@ -164,43 +341,16 @@ TimerProc endp
 
 InitParam proc
     
-    mov speed, 3
+    mov speed, 4
     mov bottomY, 387
-    mov birdMaxAc, 8
-    mov birdBottom, 661
-    mov gravityAc, 1
-    mov jumpAc, -7
+    mov birdMaxAc, 10
+    mov birdBottom, 366
+    mov gravityAc, 2
+    mov jumpAc, -14
     mov cflap, 1
     ret
 
 InitParam endp
-
-
-SetupDie proc uses eax
-
-    mov eax, cPoint
-    mov cPoint, 0
-    mov lPoint, eax
-    .if eax > maxPoint
-        mov maxPoint, eax  
-    .endif
-    
-    mov birdX, 127
-    mov birdY, 168
- 
-    ret
-SetupDie endp
-
-
-SetupFly proc uses eax
-    ; set bird
-    mov birdX, 60
-    mov birdY, 168
-    mov eax, jumpAc
-    mov birdAc, eax
-    
-    ret
-SetupFly endp
 
 
 WndProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
@@ -218,7 +368,7 @@ WndProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
 		invoke ImageList_AddMasked,bgIml,hBmp,0
 		invoke DeleteObject,hBmp
 		; Load tube image
-		invoke ImageList_Create,52,270,ILC_COLOR16 or ILC_MASK,2,2
+		invoke ImageList_Create,52,320,ILC_COLOR16 or ILC_MASK,2,2
 		mov		tubeIml,eax
 		invoke LoadBitmap,hInstance,IDB_TUBE
 		mov		hBmp,eax
@@ -244,9 +394,21 @@ WndProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
 		invoke SetWindowLong,hBoard,GWL_WNDPROC,offset BoardProc
 		mov		OldBoardProc,eax
 		invoke InitParam
-		invoke SetupDie
-		;invoke SetupGame,hBoard
+		invoke SetupDie, hBoard
 		invoke SetTimer,hWin,200,MTIMER,offset TimerProc
+	.elseif eax==WM_KEYDOWN
+		mov		eax,wParam
+		.if eax==VK_SPACE
+			push	ebx
+			.if gStatus == 0
+			    mov gStatus, 1
+			    invoke SetupFly
+			.else
+			    mov eax, jumpAc
+			    mov birdAc, eax
+			.endif
+			pop		ebx
+		.endif
 	.elseif eax==WM_COMMAND
 		mov		eax,wParam
 		and		eax,0FFFFh
