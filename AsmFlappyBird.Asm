@@ -343,7 +343,7 @@ InitParam proc
     
     mov speed, 4
     mov bottomY, 387
-    mov birdMaxAc, 10
+    mov birdMaxAc, 12
     mov birdBottom, 366
     mov gravityAc, 2
     mov jumpAc, -14

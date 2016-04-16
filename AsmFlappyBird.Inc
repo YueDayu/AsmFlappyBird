@@ -26,7 +26,7 @@ IDM_MENU			equ 10000
 IDM_FILE_EXIT		equ 10001
 IDM_HELP_ABOUT		equ 10101
 
-MTIMER				equ 30
+MTIMER				equ 25
 
 OBJECT	struct
 	x		dd ?
