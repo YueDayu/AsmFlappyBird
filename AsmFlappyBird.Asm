@@ -589,7 +589,11 @@ WndProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
 			    mov birdAc, eax
 			.endif
 		.elseif eax==VK_A
-		    mov isAuto, 1
+		    .if isAuto
+		        mov isAuto, 0
+		    .else
+		        mov isAuto, 1
+		    .endif
 		.endif
 	.elseif eax==WM_COMMAND
 		mov		eax,wParam
