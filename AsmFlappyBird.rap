@@ -58,7 +58,7 @@ Group=Assembly,Resources,Misc
 7=2
 8=2
 [AutoLoad]
-AutoLoad=1,2,3,8,4,6
+AutoLoad=1,2,8,3,7
 [RADebugBP]
 1=
 8=
@@ -73,12 +73,12 @@ AutoLoad=1,2,3,8,4,6
 2=
 3=
 [Size]
-7=0,0,0,0,0
+7=0,0,868,420,297
 4=0,0,0,0
 6=0,0,786,420,258
-1=0,0,0,0,9419
-8=0,0,0,0,334
-2=0,0,0,0,2236
+1=0,0,0,0,12061
+8=0,0,0,0,134
+2=0,0,0,0,1176
 3=0,0,0,0,105
 [Find]
 1="14"
@@ -97,7 +97,7 @@ MilestoneOnTime=2
 MilestoneOnDate=0
 MilestoneOnDateWhen=1
 MilestoneOnDateStatus=0
-MilestoneOnDateDate=16
+MilestoneOnDateDate=17
 MilestoneOnDateTimeYear=2016
 MilestoneOnDateTimeMonth=4
 MilestoneOnDateTimeDate=15

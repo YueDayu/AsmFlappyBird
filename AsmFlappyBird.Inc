@@ -4,12 +4,16 @@ include kernel32.inc
 include shell32.inc
 include comctl32.inc
 include gdi32.inc
+include comdlg32.inc
+include	masm32.inc 
 
 includelib user32.lib
 includelib kernel32.lib
 includelib shell32.lib
 includelib comctl32.lib
 includelib gdi32.lib
+includelib comdlg32.lib
+includelib masm32.lib
 
 WinMain				PROTO :DWORD,:DWORD,:DWORD,:DWORD
 WndProc				PROTO :DWORD,:DWORD,:DWORD,:DWORD
@@ -24,7 +28,9 @@ IDC_BOARD           equ 1001
 
 IDM_MENU			equ 10000
 IDM_FILE_EXIT		equ 10001
-IDM_HELP_ABOUT		equ 10101
+IDM_OPEN            equ 10002
+IDM_SAVE            equ 10003
+IDM_MODE            equ 10004
 
 MTIMER				equ 25
 
@@ -44,7 +50,8 @@ fmtStr				db '%lu',0
 lastFmtStr          db 'Last: %lu', 0
 maxFmtStr           db 'Max: %lu', 0
 alpha_QL            REAL8 0.7
-MapSize             dd 60*30*2
+MapSize             dd 60*30*2*(sizeof REAL8)
+szFile		        db	'fbai.model', 0
 
 .data?
 
@@ -108,6 +115,8 @@ actionToPerform     dd 0
 
 isAuto              dd 0 ; open auto mode?
 
-QMap                REAL8 MapSize dup(<>) ; 53 in V, 18 in H, 2 in action; 0 = do_nothing, 1 = jump
+QMap                REAL8 60*30*2 dup(<>) ; 53 in V, 18 in H, 2 in action; 0 = do_nothing, 1 = jump
 
 debug               dd 0
+
+stOpenFileName      OPENFILENAME <?>

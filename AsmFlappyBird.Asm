@@ -28,7 +28,7 @@ WinMain proc hInst:HINSTANCE,hPrevInst:HINSTANCE,CmdLine:LPSTR,CmdShow:DWORD
 	push	hInst
 	pop		wc.hInstance
 	mov		wc.hbrBackground,COLOR_BTNFACE+1
-	;mov		wc.lpszMenuName,IDM_MENU
+	mov		wc.lpszMenuName,IDM_MENU
 	mov		wc.lpszClassName,offset ClassName
 	invoke LoadIcon,NULL,IDI_APPLICATION
 	mov		wc.hIcon,eax
@@ -535,6 +535,31 @@ InitParam proc
 InitParam endp
 
 
+SaveFile proc uses eax ebx
+    LOCAL writtenByte:DWORD
+    
+	invoke CreateFile,offset szFile,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,0
+	mov ebx, eax
+	invoke WriteFile, ebx, offset QMap, MapSize, addr writtenByte, 0
+	invoke CloseHandle, ebx
+    ret
+
+SaveFile endp
+
+ReadModelFile proc
+    LOCAL readByte
+
+    invoke CreateFile,offset szFile,GENERIC_READ,0,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,0
+    .if eax
+	    mov ebx, eax
+	    invoke ReadFile, ebx, offset QMap, MapSize, addr readByte, 0
+	.endif
+	invoke CloseHandle, ebx
+    ret
+
+ReadModelFile endp
+
+
 WndProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
     LOCAL	hBmp:DWORD
 
@@ -600,10 +625,17 @@ WndProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
 		and		eax,0FFFFh
 		.if eax==IDM_FILE_EXIT
 			invoke SendMessage,hWin,WM_CLOSE,0,0
-		.elseif eax==IDM_HELP_ABOUT
-			invoke ShellAbout,hWin,addr AppName,addr AboutMsg,NULL
+		.elseif eax==IDM_MODE
+		    .if isAuto
+		        mov isAuto, 0
+		    .else
+		        mov isAuto, 1
+		    .endif
+		.elseif eax==IDM_SAVE
+		    invoke SaveFile
+		.elseif eax==IDM_OPEN
+		    invoke ReadModelFile
 		.endif
-;	.elseif eax==WM_SIZE
 	.elseif eax==WM_CLOSE
 		invoke DestroyWindow,hWin
 	.elseif uMsg==WM_DESTROY
