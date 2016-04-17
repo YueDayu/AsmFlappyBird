@@ -44,6 +44,7 @@ fmtStr				db '%lu',0
 lastFmtStr          db 'Last: %lu', 0
 maxFmtStr           db 'Max: %lu', 0
 alpha_QL            REAL8 0.7
+MapSize             dd 60*30*2
 
 .data?
 
@@ -107,6 +108,6 @@ actionToPerform     dd 0
 
 isAuto              dd 0 ; open auto mode?
 
-QMap                REAL8 136*50*2 dup(<>) ; 53 in V, 18 in H, 2 in action; 0 = do_nothing, 1 = jump
+QMap                REAL8 MapSize dup(<>) ; 53 in V, 18 in H, 2 in action; 0 = do_nothing, 1 = jump
 
 debug               dd 0
