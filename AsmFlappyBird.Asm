@@ -117,7 +117,7 @@ PaintBoard proc uses ebx esi,hWin:HWND,hDC:HDC
 	    mov		wRect.bottom,500
 	    invoke SetBkMode,mDC,TRANSPARENT	    
 	    invoke wsprintfA,addr buffer,offset fmtStr,cPoint
-	    ;invoke wsprintfA,addr buffer,offset fmtStr,debug
+	    ;invoke wsprintfA,addr buffer,offset fmtStr,actionToPerform
 	    invoke SetTextColor,mDC,0ffffffh
 	    invoke DrawText,mDC,addr buffer,-1,addr wRect,DT_CENTER
 	    invoke SetTextColor,mDC,0000000h
@@ -272,19 +272,22 @@ SetDist proc uses eax ebx
     
     mov ebx, offset downTube
     mov eax, [ebx].OBJECT.x
-    .if eax < birdX || eax > 10000 ; behind the bird, use the second tube
+    add eax, 52
+    .if eax < (birdX) || eax > 10000 ; behind the bird, use the second tube
         add ebx, sizeof OBJECT
     .endif
     mov eax, [ebx].OBJECT.x
     sub eax, birdX
+    ;sub eax, 34
     .if eax > 179
-        mov eax, 180
+        mov eax, 179
     .endif
     mov stateDashH, eax
     mov eax, [ebx].OBJECT.y
     mov ebx, birdY
+    add ebx, 24
     sub eax, ebx
-    add eax, 174
+    add eax, 200
     mov stateDashV, eax 
     ret
 
@@ -310,7 +313,7 @@ UpdateQ proc uses eax ebx edx
     div ebx
     mov tempY, eax
     mov eax, tempX
-    mov ebx, 38
+    mov ebx, 50
     mul ebx
     mov ebx, eax
     add ebx, tempY
@@ -339,7 +342,7 @@ UpdateQ proc uses eax ebx edx
     div ebx
     mov tempY, eax
     mov eax, tempX
-    mov ebx, 38
+    mov ebx, 50
     mul ebx
     add eax, tempY
     add eax, tempY
@@ -390,7 +393,7 @@ PerformAction proc uses eax ebx
     div ebx
     mov tempY, eax
     mov eax, tempX
-    mov ebx, 38
+    mov ebx, 50
     mul ebx
     add eax, tempY
     add eax, tempY
@@ -418,9 +421,12 @@ PerformAction endp
 TimerProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
 
     .if gStatus == 1
+        .if isAuto
+            invoke PerformAction
+        .endif
         mov eax, birdAc
         add eax, gravityAc
-        mov reward, 10
+        mov reward, 1
         .if eax > birdMaxAc && eax < 10000
             mov eax, birdMaxAc
         .endif
@@ -441,14 +447,14 @@ TimerProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
         mov ebx, offset downTube
         mov eax, [ebx].OBJECT.x
         .if eax < birdX && addedFlag == 0
-            mov reward, 100
+            mov reward, 2
             inc cPoint
             mov addedFlag, 1
         .endif
-        .if eax > 11 && eax < 97
+        .if eax > 16 && eax < 97
             mov eax, [ebx].OBJECT.y
             sub eax, birdY
-            .if eax < 24 || eax > 135 
+            .if eax < 20 || eax > 135 
                 mov gStatus, 0
                 mov reward, -1000
                 invoke SetupDie, hBoard
@@ -503,7 +509,6 @@ TimerProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
         .if isAuto
             invoke SetDist
             invoke UpdateQ    
-            invoke PerformAction
         .endif
         
     .endif
@@ -517,12 +522,12 @@ InitParam proc
     
     mov speed, 4
     mov bottomY, 387
-    mov birdMaxAc, 12
+    mov birdMaxAc, 11
     mov birdBottom, 369
     mov gravityAc, 2
     mov jumpAc, -14
     mov cflap, 1
-    mov stateV, 180
+    mov stateV, 179
     mov stateH, 0
     mov isAuto, 0
     ret
