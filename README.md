@@ -14,6 +14,8 @@ If you want to train your own model, press 'a' or click 'Mode' to switch to auto
 
 When the model is good enough, save model using 'File -> Save'; you can also load the last model using 'File -> Load'
 
+![Image](https://pic2.zhimg.com/1ed972c8dbbdb372342557f7b799c649_r.jpg)
+
 ## Thanks to
 
 1. [Yang Lei's project](https://github.com/yl-1993/FlappyBirdRL)
